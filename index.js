@@ -22,7 +22,7 @@ app.post('/convert', upload.single('file'), async (req, res) => {
   try {
     const response = await axios.post('https://api.luma.ai/v1/convert', formData, {
       headers: {
-        'Authorization': `Bearer YOUR_LUMA_API_KEY`,
+        'Authorization': `Bearer ${process.env.LUMA_API_KEY}`,
         ...formData.getHeaders()
       },
     });
