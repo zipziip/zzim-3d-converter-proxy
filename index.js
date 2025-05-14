@@ -1,40 +1,45 @@
-const express = require('express');
-const cors = require('cors');
-const multer = require('multer');
-const axios = require('axios');
-const FormData = require('form-data');
+import express from "express";
+import cors from "cors";
+import fetch from "node-fetch";
 
 const app = express();
 app.use(cors());
-const upload = multer();
+app.use(express.json());
 
-app.post('/convert', upload.single('file'), async (req, res) => {
-  const file = req.file;
-  const prompt = 'minimal low-poly 3D space, smallest possible GLB for fast web loading';
+const LUMA_API_KEY = process.env.LUMA_API_KEY;
 
-  const formData = new FormData();
-  formData.append('image', file.buffer, file.originalname);
-  formData.append('prompt', prompt);
-  formData.append('output_format', 'glb');
-  formData.append('quality', 'low');
-  formData.append('duration', '5');
+app.post("/generate-multi", async (req, res) => {
+  const { imageUrls } = req.body;
 
-  try {
-    const response = await axios.post('https://api.luma.ai/v1/convert', formData, {
-      headers: {
-        'Authorization': `Bearer ${process.env.LUMA_API_KEY}`,
-        ...formData.getHeaders()
-      },
-    });
+  const response = await fetch("https://api.luma.ai/v1/renders", {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${LUMA_API_KEY}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      images: imageUrls,
+      duration: "9s",
+      quality: "low",
+      style: "gimbal and drone operated video",
+    }),
+  });
 
-    res.json(response.data);
-  } catch (err) {
-    console.error(err.response?.data || err.message);
-    res.status(500).send({ error: 'Conversion failed' });
-  }
+  const data = await response.json();
+  res.json(data);
 });
 
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+app.get("/status/:id", async (req, res) => {
+  const id = req.params.id;
+  const response = await fetch(`https://api.luma.ai/v1/renders/${id}`, {
+    method: "GET",
+    headers: {
+      "Authorization": `Bearer ${LUMA_API_KEY}`,
+    },
+  });
+  const data = await response.json();
+  res.json(data);
 });
+
+const port = process.env.PORT || 3000;
+app.listen(port, () => console.log(`Server running on port ${port}`));
